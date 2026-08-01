@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Hopey & Charlie's Hearts</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+    <style>
+        :root {
+          --red: #C8102E; --red-dark: #8B0000; --red-light: #ff4d6d;
+          --blue: #0A1F5C; --blue-mid: #1a3a8f; --blue-light: #2251cc;
+          --cream: #FFF8F0; --white: #ffffff; --text: #1a1a2e; --muted: #7a7a9a;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--text); overflow-x: hidden; }
+
+        /* NAV */
+        nav { position: fixed; top: 0; width: 100%; z-index: 100; background: rgba(10,31,92,0.97); backdrop-filter: blur(10px); display: flex; justify-content: space-between; align-items: center; padding: 18px 48px; }
+        .nav-logo { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--white); }
+        .nav-logo span { color: var(--red-light); }
+        .nav-links { display: flex; gap: 28px; list-style: none; align-items: center; }
+        .nav-links a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: color 0.2s; cursor: pointer; }
+        .nav-links a:hover { color: white; }
+        .nav-cta { background: var(--red) !important; color: white !important; padding: 10px 22px !important; border-radius: 50px !important; }
+
+        /* PAGES */
+        .page { display: none; min-height: 100vh; padding-top: 76px; }
+        .page.active { display: block; }
+
+        /* HERO */
+        .hero { min-height: 100vh; background: linear-gradient(135deg, var(--blue) 0%, var(--blue-mid) 50%, var(--red-dark) 100%); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; padding: 100px 48px 60px; }
+        .hero::before { content: '♥'; position: absolute; font-size: 600px; color: rgba(255,255,255,0.03); top: 50%; left: 50%; transform: translate(-50%,-50%); animation: pulse 4s ease-in-out infinite; }
+        @keyframes pulse { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.05)} }
+        .hero-content { text-align: center; max-width: 800px; position: relative; z-index: 2; animation: fadeUp 1s ease both; }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(40px)} to{opacity:1;transform:translateY(0)} }
+        .hero-hearts { font-size: 2rem; margin-bottom: 20px; }
+        .hero h1 { font-family: 'Playfair Display', serif; font-size: clamp(2.8rem,6vw,5rem); color: white; line-height: 1.1; margin-bottom: 24px; }
+        .hero h1 span { color: var(--red-light); font-style: italic; }
+        .hero p { font-size: 1.15rem; color: rgba(255,255,255,0.8); max-width: 580px; margin: 0 auto 40px; line-height: 1.7; }
+        .hero-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        .btn-primary { background: var(--red); color: white; padding: 16px 36px; border-radius: 50px; font-size: 1rem; font-weight: 500; cursor: pointer; border: none; transition: all 0.3s; font-family: 'DM Sans', sans-serif; }
+        .btn-primary:hover { background: var(--red-dark); transform: translateY(-2px); box-shadow: 0 10px 30px rgba(200,16,46,0.4); }
+        .btn-outline { background: transparent; color: white; padding: 16px 36px; border-radius: 50px; font-size: 1rem; font-weight: 500; cursor: pointer; border: 2px solid rgba(255,255,255,0.5); transition: all 0.3s; font-family: 'DM Sans', sans-serif; }
+        .btn-outline:hover { border-color: white; background: rgba(255,255,255,0.1); }
+
+        /* STORY */
+        .story-section { padding: 100px 48px; background: var(--cream); }
+        .section-tag { display: inline-block; background: var(--red); color: white; font-size: 0.75rem; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; padding: 6px 16px; border-radius: 50px; margin-bottom: 16px; }
+        .section-title { font-family: 'Playfair Display', serif; font-size: clamp(2rem,4vw,3rem); color: var(--blue); margin-bottom: 20px; }
+        .story-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; max-width: 1100px; margin: 0 auto; }
+        .story-text p { color: #444; line-height: 1.9; font-size: 1.05rem; margin-bottom: 16px; }
+        .story-visual { background: linear-gradient(135deg, var(--blue), var(--red-dark)); border-radius: 24px; padding: 60px 40px; text-align: center; color: white; }
+        .story-visual .big-heart { font-size: 80px; display: block; margin-bottom: 20px; animation: pulse 3s ease-in-out infinite; }
+        .story-visual h3 { font-family: 'Playfair Display', serif; font-size: 1.8rem; margin-bottom: 12px; }
+        .story-visual p { color: rgba(255,255,255,0.8); font-size: 0.95rem; line-height: 1.7; }
+        .names-highlight { display: flex; gap: 16px; margin-top: 24px; justify-content: center; }
+        .name-pill { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); padding: 10px 24px; border-radius: 50px; font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.1rem; }
+
+        /* STATS */
+        .stats-section { background: var(--blue); padding: 80px 48px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 40px; max-width: 900px; margin: 0 auto; text-align: center; }
+        .stat-item h2 { font-family: 'Playfair Display', serif; font-size: 3rem; color: var(--red-light); margin-bottom: 8px; }
+        .stat-item p { color: rgba(255,255,255,0.7); font-size: 0.95rem; }
+
+        /* STORY CARDS */
+        .stories-section { padding: 100px 48px; background: white; }
+        .stories-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap: 32px; max-width: 1100px; margin: 50px auto 0; }
+        .story-card { border-radius: 20px; overflow: hidden; box-shadow: 0 4px 30px rgba(0,0,0,0.08); transition: transform 0.3s, box-shadow 0.3s; }
+        .story-card:hover { transform: translateY(-6px); box-shadow: 0 16px 40px rgba(0,0,0,0.14); }
+        .story-card-top { height: 8px; }
+        .card-red { background: var(--red); } .card-blue { background: var(--blue); } .card-mixed { background: linear-gradient(90deg,var(--blue),var(--red)); }
+        .story-card-body { padding: 32px; }
+        .story-card-body .icon { font-size: 2rem; margin-bottom: 16px; }
+        .story-card-body h3 { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--blue); margin-bottom: 12px; }
+        .story-card-body p { color: #555; line-height: 1.8; font-size: 0.95rem; }
+        .story-quote { font-style: italic; color: var(--red-dark) !important; font-weight: 500; margin-top: 12px !important; }
+
+        /* AUTH */
+        .auth-page { background: linear-gradient(135deg,var(--blue) 0%,var(--blue-mid) 60%,var(--red-dark) 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 100px 24px 60px; }
+        .auth-card { background: white; border-radius: 24px; padding: 50px; width: 100%; max-width: 460px; box-shadow: 0 30px 80px rgba(0,0,0,0.3); animation: fadeUp 0.6s ease both; }
+        .auth-card .logo { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--blue); text-align: center; margin-bottom: 8px; }
+        .auth-card .logo span { color: var(--red); }
+        .auth-card h2 { font-family: 'Playfair Display', serif; font-size: 2rem; color: var(--blue); text-align: center; margin-bottom: 8px; }
+        .auth-card .subtitle { text-align: center; color: var(--muted); font-size: 0.9rem; margin-bottom: 36px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--text); margin-bottom: 8px; }
+        .form-group input { width: 100%; padding: 14px 18px; border: 2px solid #e8e8f0; border-radius: 12px; font-size: 0.95rem; font-family: 'DM Sans', sans-serif; transition: border-color 0.2s; outline: none; }
+        .form-group input:focus { border-color: var(--blue); }
+        .auth-btn { width: 100%; padding: 16px; background: var(--red); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.3s; margin-top: 8px; }
+        .auth-btn:hover { background: var(--red-dark); transform: translateY(-1px); }
+        .auth-switch { text-align: center; margin-top: 24px; font-size: 0.9rem; color: var(--muted); }
+        .auth-switch a { color: var(--blue); font-weight: 500; cursor: pointer; }
+        .auth-error { background: #fff0f3; border: 1px solid #ffb3c1; color: var(--red-dark); padding: 12px 16px; border-radius: 10px; font-size: 0.88rem; margin-bottom: 16px; display: none; }
+        .auth-success { background: #f0fff4; border: 1px solid #b3f0c9; color: #1a7a3a; padding: 12px 16px; border-radius: 10px; font-size: 0.88rem; margin-bottom: 16px; display: none; }
+
+        /* DONATE */
+        .donate-page { background: var(--cream); padding: 100px 24px 80px; }
+        .donate-header { text-align: center; max-width: 600px; margin: 0 auto 60px; }
+        .donate-header h1 { font-family: 'Playfair Display', serif; font-size: clamp(2rem,4vw,3rem); color: var(--blue); margin-bottom: 12px; }
+        .donate-header p { color: var(--muted); font-size: 1rem; line-height: 1.7; }
+        .donate-container { max-width: 640px; margin: 0 auto; }
+        .donate-box { background: white; border-radius: 20px; padding: 36px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+        .donate-box h3 { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--blue); margin-bottom: 20px; }
+        .amount-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 16px; }
+        .amount-btn { padding: 14px; border: 2px solid #e8e8f0; border-radius: 12px; background: white; font-size: 1rem; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; color: var(--text); transition: all 0.2s; }
+        .amount-btn:hover, .amount-btn.selected { border-color: var(--blue); background: var(--blue); color: white; }
+        .custom-amount { position: relative; }
+        .custom-amount span { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+        .custom-amount input { width: 100%; padding: 14px 18px 14px 30px; border: 2px solid #e8e8f0; border-radius: 12px; font-size: 1rem; font-family: 'DM Sans', sans-serif; outline: none; transition: border-color 0.2s; }
+        .custom-amount input:focus { border-color: var(--blue); }
+        .method-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .method-card { border: 2px solid #e8e8f0; border-radius: 16px; padding: 24px; cursor: pointer; transition: all 0.2s; text-align: center; }
+        .method-card:hover { border-color: var(--blue); }
+        .method-card.selected { border-color: var(--blue); background: #f0f4ff; }
+        .method-icon { font-size: 2rem; margin-bottom: 8px; }
+        .method-card h4 { font-size: 0.95rem; font-weight: 500; color: var(--text); }
+        .payment-detail { display: none; background: #f8f9ff; border-radius: 16px; padding: 28px; margin-top: 20px; border: 1px solid #e0e6ff; }
+        .payment-detail.show { display: block; animation: fadeUp 0.4s ease; }
+        .payment-detail h4 { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--blue); margin-bottom: 16px; }
+        .wallet-box { background: white; border: 2px dashed var(--blue-light); border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+        .wallet-box code { font-size: 0.75rem; color: var(--blue); word-break: break-all; }
+        .copy-btn { background: var(--blue); color: white; border: none; border-radius: 8px; padding: 8px 16px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; font-family: 'DM Sans', sans-serif; transition: background 0.2s; }
+        .copy-btn:hover { background: var(--blue-mid); }
+        .payment-detail p { color: #555; font-size: 0.9rem; line-height: 1.7; }
+        .detail-note { background: rgba(200,16,46,0.06); border-left: 3px solid var(--red); padding: 12px 16px; border-radius: 0 8px 8px 0; font-size: 0.85rem; color: var(--red-dark); margin-top: 12px; }
+        .upload-area { border: 2px dashed #ccd0e0; border-radius: 16px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 16px; display: block; }
+        .upload-area:hover { border-color: var(--blue); background: #f0f4ff; }
+        .upload-icon { font-size: 2.5rem; margin-bottom: 12px; }
+        .upload-area h4 { color: var(--blue); font-size: 1rem; margin-bottom: 6px; }
+        .upload-area p { color: var(--muted); font-size: 0.85rem; }
+        #card-preview { max-width: 100%; border-radius: 12px; margin-top: 16px; display: none; }
+        .field-group { margin-top: 16px; }
+        .field-group label { font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 8px; }
+        .field-group input { width: 100%; padding: 12px 16px; border: 2px solid #e8e8f0; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; outline: none; transition: border-color 0.2s; }
+        .field-group input:focus { border-color: var(--blue); }
+        .donate-submit { width: 100%; padding: 18px; background: linear-gradient(135deg,var(--red),var(--red-dark)); color: white; border: none; border-radius: 14px; font-size: 1.05rem; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.3s; letter-spacing: 0.5px; }
+        .donate-submit:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(200,16,46,0.35); }
+        .donate-submit:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+        /* SUCCESS OVERLAY */
+        .success-overlay { display: none; position: fixed; inset: 0; background: rgba(10,31,92,0.92); z-index: 999; align-items: center; justify-content: center; padding: 24px; }
+        .success-overlay.show { display: flex; }
+        .success-box { background: white; border-radius: 24px; padding: 56px 48px; text-align: center; max-width: 420px; width: 100%; animation: fadeUp 0.5s ease; }
+        .success-box .success-icon { font-size: 4rem; margin-bottom: 20px; }
+        .success-box h2 { font-family: 'Playfair Display', serif; font-size: 1.8rem; color: var(--blue); margin-bottom: 12px; }
+        .success-box p { color: var(--muted); font-size: 0.95rem; line-height: 1.7; margin-bottom: 12px; }
+        .progress-bar-wrap { background: #f0f0f8; border-radius: 50px; height: 8px; overflow: hidden; margin: 16px 0 8px; }
+        .progress-bar-fill { width: 0%; height: 100%; background: linear-gradient(90deg,var(--blue),var(--red)); border-radius: 50px; transition: width 4s ease; }
+        .close-success { background: var(--blue); color: white; border: none; border-radius: 10px; padding: 14px 32px; font-size: 0.95rem; cursor: pointer; font-family: 'DM Sans', sans-serif; margin-top: 20px; }
+
+
+        /* HISTORY */
+        .history-card { background: white; border-radius: 16px; padding: 24px 28px; margin-bottom: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+        .history-left { display: flex; align-items: center; gap: 16px; }
+        .history-icon { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0; }
+        .icon-bitcoin { background: #fff3e0; }
+        .icon-apple { background: #f0f4ff; }
+        .history-info h4 { font-family: 'Playfair Display', serif; font-size: 1.05rem; color: var(--blue); margin-bottom: 4px; }
+        .history-info p { font-size: 0.82rem; color: var(--muted); }
+        .history-right { text-align: right; }
+        .history-amount { font-family: 'Playfair Display', serif; font-size: 1.4rem; color: var(--blue); margin-bottom: 6px; }
+        .status-badge { display: inline-block; padding: 4px 14px; border-radius: 50px; font-size: 0.78rem; font-weight: 500; }
+        .status-pending { background: #fff8e1; color: #f59e0b; }
+        .status-confirmed { background: #f0fff4; color: #10b981; }
+        .status-rejected { background: #fff0f3; color: var(--red); }
+        .history-total { background: linear-gradient(135deg, var(--blue), var(--blue-mid)); border-radius: 16px; padding: 24px 28px; margin-bottom: 24px; color: white; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+        .history-total h3 { font-family: 'Playfair Display', serif; font-size: 1rem; opacity: 0.8; margin-bottom: 4px; }
+        .history-total .big-num { font-family: 'Playfair Display', serif; font-size: 2rem; }
+        /* FOOTER */
+        footer { background: var(--blue); color: rgba(255,255,255,0.6); text-align: center; padding: 40px 24px; font-size: 0.85rem; }
+        footer span { color: var(--red-light); }
+
+        /* LOADING SPINNER */
+        .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media(max-width:768px) {
+          nav { padding: 16px 20px; }
+          .nav-links { gap: 14px; }
+          .nav-logo { font-size: 1rem; }
+          .hero { padding: 100px 24px 60px; }
+          .story-grid { grid-template-columns: 1fr; gap: 40px; }
+          .stats-grid { grid-template-columns: 1fr; gap: 24px; }
+          .stories-section, .story-section { padding: 60px 24px; }
+          .method-cards { grid-template-columns: 1fr 1fr; }
+          .amount-grid { grid-template-columns: repeat(2,1fr); }
+          .success-box { padding: 36px 24px; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="nav-logo">Hopey & <span>Charlie's</span> Hearts</div>
+    <ul class="nav-links">
+        <li><a onclick="showPage('home')">Home</a></li>
+        <li><a onclick="showPage('donate')" class="nav-cta">Donate Now</a></li>
+        <li><a id="nav-history-link" onclick="showHistory()" style="display:none">My Donations</a></li>
+        <li><a id="nav-auth-link" onclick="showPage('login')">Sign In</a></li>
+    </ul>
+</nav>
+
+<!-- ===== HOME ===== -->
+<div class="page active" id="page-home">
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-hearts">♥ ♥</div>
+            <h1>Every Heart Deserves to be <span>Seen & Loved</span></h1>
+            <p>Hopey and Charlie taught me that Down syndrome is not a limitation — it's a different kind of beautiful. This foundation exists because of them, for people like them.</p>
+            <div class="hero-btns">
+                <button class="btn-primary" onclick="showPage('donate')">Make a Donation</button>
+                <button class="btn-outline" onclick="document.getElementById('our-story').scrollIntoView({behavior:'smooth'})">Our Story</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="story-section" id="our-story">
+        <div class="story-grid">
+            <div class="story-text">
+                <div class="section-tag">Our Story</div>
+                <h2 class="section-title">Where It All Began</h2>
+                <p>My siblings <strong>Hopey</strong> and <strong>Charlie</strong> were born with Down syndrome. Growing up alongside them didn't just shape who I am — it completely redefined how I see the world.</p>
+                <p>I watched them laugh louder, love deeper, and push through challenges that would make most people give up. They never asked for pity. They asked for presence, for understanding, for a world that would simply meet them where they are.</p>
+                <p>That's why I built this. Not out of sadness, but out of pure admiration. Hopey and Charlie made me want to fight — for awareness, for resources, for families who are walking the same beautiful, challenging road we walked.</p>
+                <p>Every dollar donated goes directly toward supporting families, funding research, and building a community where people with Down syndrome can thrive with dignity.</p>
+            </div>
+            <div class="story-visual">
+                <span class="big-heart">♥</span>
+                <h3>Inspired by Two Incredible Souls</h3>
+                <p>Their courage, joy, and love inspired this entire mission.</p>
+                <div class="names-highlight">
+                    <span class="name-pill">Hopey</span>
+                    <span class="name-pill">Charlie</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats-section">
+        <div class="stats-grid">
+            <div class="stat-item"><h2>1 in 700</h2><p>Babies born with Down syndrome each year worldwide</p></div>
+            <div class="stat-item"><h2>200K+</h2><p>Families in the US living with Down syndrome</p></div>
+            <div class="stat-item"><h2>∞</h2><p>Love, courage & potential in every individual</p></div>
+        </div>
+    </section>
+
+    <section class="stories-section">
+        <div style="text-align:center;">
+            <div class="section-tag">Real Stories</div>
+            <h2 class="section-title" style="margin-top:12px;">Lives Being Changed</h2>
+        </div>
+        <div class="stories-grid">
+            <div class="story-card"><div class="story-card-top card-red"></div><div class="story-card-body"><div class="icon">🌸</div><h3>Emma's Journey</h3><p>Emma was told she'd never read independently. At 14, she reads a book a week and writes poetry that moves people to tears.</p><p class="story-quote">"She proved every single doubt wrong." — Emma's Mom</p></div></div>
+            <div class="story-card"><div class="story-card-top card-blue"></div><div class="story-card-body"><div class="icon">⚽</div><h3>Marcus Finds His Field</h3><p>Marcus, 17, joined an inclusive soccer league and became the team's most consistent scorer. "The field is where I'm free," he says.</p><p class="story-quote">"I just want to play. I just want to be part of something." — Marcus</p></div></div>
+            <div class="story-card"><div class="story-card-top card-mixed"></div><div class="story-card-body"><div class="icon">🎨</div><h3>Lily's Art Speaks</h3><p>Lily couldn't always find the words — but her paintings said everything. At 22, she held her first gallery show and sold every piece.</p><p class="story-quote">"Art gave her a voice louder than any words." — Lily's Dad</p></div></div>
+        </div>
+    </section>
+
+    <section style="background:linear-gradient(135deg,var(--red-dark),var(--red));padding:80px 48px;text-align:center;">
+        <h2 style="font-family:'Playfair Display',serif;font-size:2.5rem;color:white;margin-bottom:16px;">Ready to Make a Difference?</h2>
+        <p style="color:rgba(255,255,255,0.8);margin-bottom:32px;font-size:1.05rem;">Every contribution — big or small — changes a life. Do it for Hopey. Do it for Charlie.</p>
+        <button class="btn-outline" onclick="showPage('donate')" style="font-size:1.05rem;padding:18px 44px;">Donate Today ♥</button>
+    </section>
+
+    <footer><p>Made with ♥ in honor of <span>Hopey</span> & <span>Charlie</span> · Hopey & Charlie's Hearts Foundation · 2025</p></footer>
+</div>
+
+<!-- ===== LOGIN ===== -->
+<div class="page" id="page-login">
+    <div class="auth-page">
+        <div class="auth-card">
+            <div class="logo">Hopey & <span>Charlie's</span> Hearts</div>
+            <h2>Welcome Back</h2>
+            <p class="subtitle">Sign in to your account</p>
+            <div class="auth-error" id="login-error"></div>
+            <div class="form-group"><label>Email Address</label><input type="email" id="login-email" placeholder="you@example.com"/></div>
+            <div class="form-group"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••"/></div>
+            <button class="auth-btn" onclick="handleLogin()">Sign In</button>
+            <div class="auth-switch">Don't have an account? <a onclick="showPage('register')">Create one</a></div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== REGISTER ===== -->
+<div class="page" id="page-register">
+    <div class="auth-page">
+        <div class="auth-card">
+            <div class="logo">Hopey & <span>Charlie's</span> Hearts</div>
+            <h2>Create Account</h2>
+            <p class="subtitle">Join our community of hearts</p>
+            <div class="auth-error" id="register-error"></div>
+            <div class="auth-success" id="register-success"></div>
+            <div class="form-group"><label>Full Name</label><input type="text" id="reg-name" placeholder="Your full name"/></div>
+            <div class="form-group"><label>Email Address</label><input type="email" id="reg-email" placeholder="you@example.com"/></div>
+            <div class="form-group"><label>Password</label><input type="password" id="reg-pass" placeholder="At least 6 characters"/></div>
+            <div class="form-group"><label>Confirm Password</label><input type="password" id="reg-pass2" placeholder="Repeat your password"/></div>
+            <button class="auth-btn" onclick="handleRegister()">Create Account</button>
+            <div class="auth-switch">Already have an account? <a onclick="showPage('login')">Sign in</a></div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== DONATE ===== -->
+<div class="page" id="page-donate">
+    <div class="donate-page">
+        <div class="donate-header">
+            <div class="section-tag">Make a Difference</div>
+            <h1>Donate to Hopey & Charlie's Hearts</h1>
+            <p>Your generosity directly supports families and individuals living with Down syndrome. Every dollar has a heartbeat.</p>
+        </div>
+        <div class="donate-container">
+            <!-- Amount -->
+            <div class="donate-box">
+                <h3>Choose an Amount (USD)</h3>
+                <div class="amount-grid">
+                    <button class="amount-btn" onclick="selectAmount(this,10)">$10</button>
+                    <button class="amount-btn" onclick="selectAmount(this,25)">$25</button>
+                    <button class="amount-btn" onclick="selectAmount(this,50)">$50</button>
+                    <button class="amount-btn" onclick="selectAmount(this,100)">$100</button>
+                    <button class="amount-btn" onclick="selectAmount(this,250)">$250</button>
+                    <button class="amount-btn" onclick="selectAmount(this,500)">$500</button>
+                </div>
+                <div class="custom-amount">
+                    <span>$</span>
+                    <input type="number" id="customAmount" placeholder="Enter custom amount" oninput="clearAmountBtns()"/>
+                </div>
+            </div>
+
+            <!-- Donor Info -->
+            <div class="donate-box">
+                <h3>Your Details</h3>
+                <div class="field-group"><label>Full Name</label><input type="text" id="donor-name" placeholder="Your name (optional)"/></div>
+                <div class="field-group"><label>Email Address *</label><input type="email" id="donor-email" placeholder="For your confirmation email"/></div>
+            </div>
+
+            <!-- Payment Method -->
+            <div class="donate-box">
+                <h3>Choose Payment Method</h3>
+                <div class="method-cards">
+                    <div class="method-card" id="method-bitcoin" onclick="selectMethod('bitcoin')">
+                        <div class="method-icon">₿</div>
+                        <h4>Bitcoin</h4>
+                    </div>
+                    <div class="method-card" id="method-apple_card" onclick="selectMethod('apple_card')">
+                        <div class="method-icon">🍎</div>
+                        <h4>Apple Card</h4>
+                    </div>
+                </div>
+
+                <!-- Bitcoin -->
+                <div class="payment-detail" id="detail-bitcoin">
+                    <h4>₿ Send Bitcoin to This Wallet</h4>
+                    <div class="wallet-box">
+                        <code id="btc-addr">bc1qv34aurx4tx9zr4m5sr8dhrf6wa4ktmv0qpq697</code>
+                        <button class="copy-btn" onclick="copyWallet()">Copy</button>
+                    </div>
+                    <p>Send your chosen amount in Bitcoin to the address above. Then click <strong>"Complete Donation"</strong> and we'll track your transaction and send you a confirmation email.</p>
+                    <div class="detail-note">⏳ Bitcoin confirms in 10–60 minutes. You'll get an email once our admin verifies receipt.</div>
+                </div>
+
+                <!-- Apple Card -->
+                <div class="payment-detail" id="detail-apple_card">
+                    <h4>🍎 Upload Your Apple Card Photo</h4>
+                    <p style="margin-bottom:16px;">Take a clear photo of the front of your Apple Card and upload it below. It goes directly and securely to our team.</p>
+                    <label class="upload-area" for="card-upload">
+                        <div class="upload-icon">📸</div>
+                        <h4>Tap to upload card photo</h4>
+                        <p>JPG, PNG or HEIC · Front of card</p>
+                    </label>
+                    <input type="file" id="card-upload" accept="image/*" style="display:none" onchange="previewCard(event)"/>
+                    <img id="card-preview" alt="Card preview"/>
+                    <div class="detail-note">📧 Sent directly to our secure team. We confirm within 24 hours.</div>
+                </div>
+            </div>
+
+            <button class="donate-submit" id="donate-btn" onclick="submitDonation()">Complete Donation ♥</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ===== HISTORY ===== -->
+<div class="page" id="page-history">
+    <div class="donate-page">
+        <div class="donate-header">
+            <div class="section-tag">Your Giving</div>
+            <h1>My Donation History</h1>
+            <p>A record of every contribution you've made to Hopey &amp; Charlie's Hearts.</p>
+        </div>
+        <div class="donate-container">
+            <div id="history-loading" style="text-align:center;padding:60px 0;">
+                <div class="spinner" style="border-color:rgba(10,31,92,0.2);border-top-color:var(--blue);width:36px;height:36px;border-width:4px;"></div>
+                <p style="color:var(--muted);margin-top:16px;">Loading your donations...</p>
+            </div>
+            <div id="history-empty" style="display:none;text-align:center;padding:60px 0;">
+                <div style="font-size:3rem;margin-bottom:16px;">💙</div>
+                <h3 style="font-family:'Playfair Display',serif;color:var(--blue);margin-bottom:8px;">No donations yet</h3>
+                <p style="color:var(--muted);margin-bottom:24px;">Your giving history will appear here after your first donation.</p>
+                <button class="btn-primary" onclick="showPage('donate')">Make a Donation ♥</button>
+            </div>
+            <div id="history-list" style="display:none;"></div>
+        </div>
+    </div>
+</div>
+<!-- SUCCESS OVERLAY -->
+<div class="success-overlay" id="success-overlay">
+    <div class="success-box">
+        <div class="success-icon" id="s-icon">⏳</div>
+        <h2 id="s-title">Payment In Progress</h2>
+        <p id="s-msg"></p>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar"></div></div>
+        <p style="font-size:0.8rem;color:#bbb;" id="s-sub">Verifying transaction...</p>
+        <button class="close-success" onclick="closeSuccess()">Back to Home ♥</button>
+    </div>
+</div>
+
+<!-- Firebase SDK -->
+<script>
+    // ── SPRING BOOT AUTH ──────────────────────────────────────────────
+    // Checks if user has a saved token on page load
+    (function() {
+      const token = localStorage.getItem('hc_token');
+      const name  = localStorage.getItem('hc_name');
+      if (token && name) {
+        const link = document.getElementById('nav-auth-link');
+        if (link) { link.textContent = 'Sign Out'; link.onclick = handleSignOut; }
+        const histLink = document.getElementById('nav-history-link');
+        if (histLink) histLink.style.display = 'inline';
+      }
+    })();
+
+    function handleSignOut() {
+      localStorage.removeItem('hc_token');
+      localStorage.removeItem('hc_name');
+      localStorage.removeItem('hc_email');
+      const link = document.getElementById('nav-auth-link');
+      link.textContent = 'Sign In';
+      link.onclick = () => showPage('login');
+      const histLink = document.getElementById('nav-history-link');
+      if (histLink) histLink.style.display = 'none';
+      showPage('home');
+    }
+
+    // POST /api/auth/login → Spring Boot
+    window.handleLogin = async () => {
+      const email = document.getElementById('login-email').value.trim();
+      const pass  = document.getElementById('login-pass').value;
+      const errEl = document.getElementById('login-error');
+      errEl.style.display = 'none';
+      if (!email || !pass) { errEl.textContent = 'Please fill in all fields.'; errEl.style.display = 'block'; return; }
+      try {
+        const res  = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password: pass }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          localStorage.setItem('hc_token', data.token);
+          localStorage.setItem('hc_name',  data.name);
+          localStorage.setItem('hc_email', data.email);
+          const link = document.getElementById('nav-auth-link');
+          link.textContent = 'Sign Out';
+          link.onclick = handleSignOut;
+          const histLink = document.getElementById('nav-history-link');
+          if (histLink) histLink.style.display = 'inline';
+          showPage('home');
+        } else {
+          errEl.textContent = data.message || 'Sign in failed.';
+          errEl.style.display = 'block';
+        }
+      } catch(e) {
+        errEl.textContent = 'Network error. Please try again.';
+        errEl.style.display = 'block';
+      }
+    };
+
+    // POST /api/auth/register → Spring Boot
+    window.handleRegister = async () => {
+      const name  = document.getElementById('reg-name').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const pass  = document.getElementById('reg-pass').value;
+      const pass2 = document.getElementById('reg-pass2').value;
+      const errEl = document.getElementById('register-error');
+      const sucEl = document.getElementById('register-success');
+      errEl.style.display = 'none'; sucEl.style.display = 'none';
+      if (!name || !email || !pass || !pass2) { errEl.textContent = 'Please fill in all fields.'; errEl.style.display = 'block'; return; }
+      if (pass !== pass2)   { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'block'; return; }
+      if (pass.length < 6)  { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display = 'block'; return; }
+      try {
+        const res  = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fullName: name, email, password: pass }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          localStorage.setItem('hc_token', data.token);
+          localStorage.setItem('hc_name',  data.name);
+          localStorage.setItem('hc_email', data.email);
+          const histLink2 = document.getElementById('nav-history-link');
+          if (histLink2) histLink2.style.display = 'inline';
+          sucEl.textContent = "Account created! Welcome to Hopey & Charlie's Hearts ♥";
+          sucEl.style.display = 'block';
+          setTimeout(() => showPage('home'), 1800);
+        } else {
+          errEl.textContent = data.message || 'Registration failed.';
+          errEl.style.display = 'block';
+        }
+      } catch(e) {
+        errEl.textContent = 'Network error. Please try again.';
+        errEl.style.display = 'block';
+      }
+    };
+</script>
+
+<script>
+    let selectedMethod = null;
+    let selectedAmount = null;
+
+    function showPage(page) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-' + page).classList.add('active');
+      window.scrollTo(0,0);
+    }
+
+    function selectAmount(btn, val) {
+      document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedAmount = val;
+      document.getElementById('customAmount').value = '';
+    }
+
+    function clearAmountBtns() {
+      document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'));
+      selectedAmount = null;
+    }
+
+    function selectMethod(method) {
+      document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
+      document.querySelectorAll('.payment-detail').forEach(d => d.classList.remove('show'));
+      document.getElementById('method-' + method).classList.add('selected');
+      selectedMethod = method;
+      document.getElementById('detail-' + method).classList.add('show');
+    }
+
+    function copyWallet() {
+      navigator.clipboard.writeText(document.getElementById('btc-addr').textContent).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = '✓ Copied!';
+        btn.style.background = '#28a745';
+        setTimeout(() => { btn.textContent = 'Copy'; btn.style.background = ''; }, 2000);
+      });
+    }
+
+    function previewCard(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const img = document.getElementById('card-preview');
+        img.src = ev.target.result;
+        img.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function submitDonation() {
+      const customVal = document.getElementById('customAmount').value;
+      const amount = selectedAmount || (customVal ? parseFloat(customVal) : null);
+      const donorEmail = document.getElementById('donor-email').value.trim();
+      const donorName = document.getElementById('donor-name').value.trim();
+      const btn = document.getElementById('donate-btn');
+
+      if (!amount || amount <= 0) { alert('Please select or enter a donation amount.'); return; }
+      if (!selectedMethod) { alert('Please choose a payment method.'); return; }
+      if (!donorEmail || !donorEmail.includes('@')) { alert('Please enter a valid email address.'); return; }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Processing...';
+
+      try {
+        let body = { method: selectedMethod, amount, donorEmail, donorName };
+
+        if (selectedMethod === 'apple_card') {
+          const file = document.getElementById('card-upload').files[0];
+          if (!file) { alert('Please upload a photo of your Apple Card.'); btn.disabled = false; btn.innerHTML = 'Complete Donation ♥'; return; }
+          const base64 = await toBase64(file);
+          body.cardImageBase64 = base64;
+          body.fileName = file.name;
+        }
+
+        const res = await fetch('/api/donate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          showSuccessOverlay(selectedMethod, donorEmail, data.donationId);
+        } else {
+          alert('Something went wrong: ' + (data.error || 'Please try again.'));
+        }
+      } catch(err) {
+        alert('Network error. Please check your connection and try again.');
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = 'Complete Donation ♥';
+    }
+
+    function toBase64(file) {
+      return new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result);
+        r.onerror = rej;
+        r.readAsDataURL(file);
+      });
+    }
+
+    function showSuccessOverlay(method, email, donationId) {
+      const icon = document.getElementById('s-icon');
+      const title = document.getElementById('s-title');
+      const msg = document.getElementById('s-msg');
+      const sub = document.getElementById('s-sub');
+      const bar = document.getElementById('progress-bar');
+
+      if (method === 'bitcoin') {
+        icon.textContent = '⏳';
+        title.textContent = 'Payment In Progress';
+        msg.textContent = `Your Bitcoin donation is being tracked (ID: ${donationId}). Once our admin verifies your transaction on the blockchain, you'll receive a confirmation at ${email}.`;
+        sub.textContent = 'Waiting for blockchain confirmation...';
+      } else {
+        icon.textContent = '📧';
+        title.textContent = 'Card Sent Successfully!';
+        msg.textContent = `Your Apple Card photo has been sent to our team (ID: ${donationId}). We'll confirm your donation to ${email} within 24 hours.`;
+        sub.textContent = 'Your generosity means the world to us ♥';
+      }
+
+      document.getElementById('success-overlay').classList.add('show');
+      setTimeout(() => { bar.style.width = '80%'; }, 200);
+    }
+
+
+    async function showHistory() {
+      const email = localStorage.getItem('hc_email');
+      if (!email) { showPage('login'); return; }
+      showPage('history');
+      document.getElementById('history-loading').style.display = 'block';
+      document.getElementById('history-empty').style.display = 'none';
+      document.getElementById('history-list').style.display = 'none';
+
+      try {
+        const res = await fetch('/api/donate/history?email=' + encodeURIComponent(email));
+        const data = await res.json();
+        document.getElementById('history-loading').style.display = 'none';
+
+        if (!data.donations || data.donations.length === 0) {
+          document.getElementById('history-empty').style.display = 'block';
+          return;
+        }
+
+        const confirmed = data.donations.filter(d => d.status === 'confirmed').reduce((sum, d) => sum + d.amount, 0);
+        let html = `<div class="history-total">
+          <div><h3>Total Confirmed Donations</h3><div class="big-num">$${confirmed.toFixed(2)}</div></div>
+          <div style="text-align:right"><h3>Total Donations</h3><div class="big-num">${data.donations.length}</div></div>
+        </div>`;
+
+        data.donations.forEach(d => {
+          const icon = d.method === 'bitcoin' ? '₿' : '🍎';
+          const iconClass = d.method === 'bitcoin' ? 'icon-bitcoin' : 'icon-apple';
+          const method = d.method === 'bitcoin' ? 'Bitcoin' : 'Apple Card';
+          const date = new Date(d.createdAt).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+          const statusClass = 'status-' + d.status;
+          const statusText = d.status === 'confirmed' ? '✅ Confirmed' : d.status === 'rejected' ? '✕ Rejected' : '⏳ Pending';
+          html += `<div class="history-card">
+            <div class="history-left">
+              <div class="history-icon ${iconClass}">${icon}</div>
+              <div class="history-info">
+                <h4>${method} Donation</h4>
+                <p>${date} · ID: ${d.id.slice(0,8)}...</p>
+              </div>
+            </div>
+            <div class="history-right">
+              <div class="history-amount">$${parseFloat(d.amount).toFixed(2)}</div>
+              <span class="status-badge ${statusClass}">${statusText}</span>
+            </div>
+          </div>`;
+        });
+
+        document.getElementById('history-list').innerHTML = html;
+        document.getElementById('history-list').style.display = 'block';
+      } catch(e) {
+        document.getElementById('history-loading').style.display = 'none';
+        document.getElementById('history-empty').style.display = 'block';
+      }
+    }
+    function closeSuccess() {
+      document.getElementById('success-overlay').classList.remove('show');
+      document.getElementById('progress-bar').style.width = '0%';
+      showPage('home');
+    }
+</script>
+</body>
+</html>
