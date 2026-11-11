@@ -34,6 +34,9 @@ public interface DonationRepository extends JpaRepository<Donation, String> {
     // Find all donations by a specific donor email
     List<Donation> findByDonorEmailOrderByCreatedAtDesc(String donorEmail);
 
+    // Donations that belong to a signed-in account OR were made with the account's email
+    List<Donation> findByUserEmailIgnoreCaseOrDonorEmailIgnoreCaseOrderByCreatedAtDesc(String userEmail, String donorEmail);
+
     // Find all donations ordered by newest first
     List<Donation> findAllByOrderByCreatedAtDesc();
 

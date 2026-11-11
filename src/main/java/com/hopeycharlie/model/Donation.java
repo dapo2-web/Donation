@@ -41,7 +41,14 @@ public class Donation {
     private String donorName;
 
     /**
-     * Payment method: "bitcoin" or "apple_card"
+     * Email of the signed-in account that made this donation (null for guest donations).
+     * Lets "My Donations" work even if the donor typed a different email on the form.
+     */
+    @Column(name = "user_email")
+    private String userEmail;
+
+    /**
+     * Payment method: "bitcoin" (legacy records may retain older method values)
      */
     @Column(nullable = false)
     private String method;
@@ -69,4 +76,7 @@ public class Donation {
     // Bitcoin wallet address stored for reference
     @Column(name = "wallet_address")
     private String walletAddress;
+
+    @Column(name = "transaction_id", length = 128)
+    private String transactionId;
 }

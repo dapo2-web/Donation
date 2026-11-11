@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,25 +40,24 @@ public class DonationService {
      * Process a new donation submission from the frontend.
      */
     @Transactional
-    public DonationResponse processDonation(DonationRequest request) {
-        if (request.getMethod().equals("bitcoin")) {
-            return processBitcoinDonation(request);
-        } else if (request.getMethod().equals("apple_card")) {
-            return processAppleCardDonation(request);
-        } else {
-            throw new IllegalArgumentException("Invalid payment method: " + request.getMethod());
+    public DonationResponse processDonation(DonationRequest request, String userEmail) {
+        if ("bitcoin".equalsIgnoreCase(request.getMethod())) {
+            return processBitcoinDonation(request, userEmail);
         }
+        throw new IllegalArgumentException("This payment method is not currently available. Card payments will be enabled only through a secure payment processor.");
     }
 
-    private DonationResponse processBitcoinDonation(DonationRequest request) {
+    private DonationResponse processBitcoinDonation(DonationRequest request, String userEmail) {
         // Build and save the donation entity
         Donation donation = Donation.builder()
                 .amount(request.getAmount())
                 .donorEmail(request.getDonorEmail())
                 .donorName(request.getDonorName())
+                .userEmail(userEmail)
                 .method("bitcoin")
                 .status("pending")
                 .walletAddress(bitcoinWallet)
+                .transactionId(request.getTransactionId())
                 .build();
 
         // .save() → Spring runs INSERT INTO donations (...) VALUES (...)
@@ -76,43 +74,6 @@ public class DonationService {
 
         return new DonationResponse(donation.getId(),
                 "Bitcoin donation recorded. Check your email for confirmation details.");
-    }
-
-    private DonationResponse processAppleCardDonation(DonationRequest request) {
-        if (request.getCardImageBase64() == null || request.getCardImageBase64().isBlank()) {
-            throw new IllegalArgumentException("Card image is required for Apple Card donations");
-        }
-
-        Donation donation = Donation.builder()
-                .amount(request.getAmount())
-                .donorEmail(request.getDonorEmail())
-                .donorName(request.getDonorName())
-                .method("apple_card")
-                .status("pending")
-                .build();
-
-        donation = donationRepository.save(donation);
-        log.info("Apple Card donation saved: {} - ${}", donation.getId(), donation.getAmount());
-
-        // Decode base64 image and email it to admin
-        byte[] imageBytes = decodeBase64Image(request.getCardImageBase64());
-        emailService.sendAppleCardToAdmin(
-                request.getDonorName(),
-                request.getDonorEmail(),
-                request.getAmount(),
-                donation.getId(),
-                imageBytes,
-                request.getFileName()
-        );
-        emailService.sendAppleCardConfirmation(
-                request.getDonorEmail(),
-                request.getDonorName(),
-                request.getAmount(),
-                donation.getId()
-        );
-
-        return new DonationResponse(donation.getId(),
-                "Apple Card donation received. We'll confirm within 24 hours.");
     }
 
     /**
@@ -197,6 +158,7 @@ public class DonationService {
         detail.setDonorEmail(d.getDonorEmail());
         detail.setDonorName(d.getDonorName());
         detail.setMethod(d.getMethod());
+        detail.setTransactionId(d.getTransactionId());
         detail.setStatus(d.getStatus());
         detail.setCreatedAt(d.getCreatedAt());
         detail.setConfirmedAt(d.getConfirmedAt());
@@ -204,17 +166,9 @@ public class DonationService {
         return detail;
     }
 
-    /**
-     * Decodes a base64 image string to raw bytes.
-     * Handles both "data:image/jpeg;base64,..." and plain base64.
-     */
-    private byte[] decodeBase64Image(String base64) {
-        String data = base64.contains(",") ? base64.split(",")[1] : base64;
-        return Base64.getDecoder().decode(data);
-    }
-
+    /** Everything a signed-in user has donated: by account link or by matching donor email. */
     public List<DonationDetail> getDonationsByEmail(String email) {
-        return donationRepository.findByDonorEmailOrderByCreatedAtDesc(email)
+        return donationRepository.findByUserEmailIgnoreCaseOrDonorEmailIgnoreCaseOrderByCreatedAtDesc(email, email)
                 .stream()
                 .map(this::toDetail)
                 .collect(Collectors.toList());

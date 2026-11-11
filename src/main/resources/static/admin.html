@@ -203,6 +203,7 @@
     </div>
     <div class="header-right">
       <span class="admin-pill">🔒 Admin</span>
+      <button class="logout-btn" style="margin-right:8px;" onclick="testEmail()">✉ Test Email</button>
       <button class="logout-btn" onclick="adminLogout()">Sign Out</button>
     </div>
   </header>
@@ -243,7 +244,7 @@
           <button class="filter-tab" onclick="filterDonations('confirmed',this)">✅ Confirmed</button>
           <button class="filter-tab" onclick="filterDonations('rejected',this)">✕ Rejected</button>
           <button class="filter-tab" onclick="filterDonations('bitcoin',this)">₿ Bitcoin</button>
-          <button class="filter-tab" onclick="filterDonations('apple_card',this)">🍎 Apple Card</button>
+
           <button class="refresh-btn" onclick="loadDonations()">↻</button>
         </div>
       </div>
@@ -337,11 +338,11 @@
   async function loadStats() {
     const res = await api('GET', 'stats');
     if (!res) return;
-    document.getElementById('st-count').textContent = res.count ?? 0;
-    document.getElementById('st-total').textContent = '$' + (res.total ?? 0).toLocaleString();
-    document.getElementById('st-pending').textContent = res.pending ?? 0;
+    document.getElementById('st-count').textContent = res.totalDonations ?? 0;
+    document.getElementById('st-total').textContent = '$' + Number(res.totalRaised ?? 0).toLocaleString();
+    document.getElementById('st-pending').textContent = res.pendingCount ?? 0;
     document.getElementById('st-users').textContent = res.userCount ?? 0;
-    document.getElementById('pending-badge').textContent = res.pending ?? 0;
+    document.getElementById('pending-badge').textContent = res.pendingCount ?? 0;
     document.getElementById('users-badge').textContent = res.userCount ?? 0;
   }
 
@@ -369,11 +370,11 @@
     else if (filter === 'confirmed') rows = rows.filter(d => d.status === 'confirmed');
     else if (filter === 'rejected') rows = rows.filter(d => d.status === 'rejected');
     else if (filter === 'bitcoin') rows = rows.filter(d => d.method === 'bitcoin');
-    else if (filter === 'apple_card') rows = rows.filter(d => d.method === 'apple_card');
     if (q) rows = rows.filter(d =>
       (d.donorName||'').toLowerCase().includes(q) ||
       (d.donorEmail||'').toLowerCase().includes(q) ||
-      (d.id||'').toLowerCase().includes(q)
+      (d.id||'').toLowerCase().includes(q) ||
+      (d.transactionId||'').toLowerCase().includes(q)
     );
     if (!rows.length) { empty('donations-table', '💙', 'No donations found.'); return; }
     document.getElementById('donations-table').innerHTML = `
@@ -383,10 +384,10 @@
           <tr>
             <td><div class="user-cell">
               <div class="avatar ${d.method==='bitcoin'?'av-blue':'av-red'}">${initials(d.donorName)}</div>
-              <div class="user-cell-info"><strong>${d.donorName||'Anonymous'}</strong><span>${d.donorEmail}</span><span class="mono">${d.id}</span></div>
+              <div class="user-cell-info"><strong>${escapeHtml(d.donorName||'Anonymous')}</strong><span>${escapeHtml(d.donorEmail||'')}</span><span class="mono">${escapeHtml(d.id)}</span>${d.transactionId ? `<span class="mono">TX: ${escapeHtml(d.transactionId)}</span>` : '<span class="muted">No transaction hash supplied</span>'}</div>
             </div></td>
             <td><span class="amt">$${d.amount}</span></td>
-            <td><span class="method-pill">${d.method==='bitcoin'?'₿ Bitcoin':'🍎 Apple Card'}</span></td>
+            <td><span class="method-pill">${d.method==='bitcoin'?'₿ Bitcoin':'Legacy card record'}</span></td>
             <td style="color:var(--muted);font-size:0.79rem;white-space:nowrap;">${fmtDate(d.createdAt)}</td>
             <td><span class="badge ${d.status}">${statusLbl(d.status)}</span></td>
             <td>${d.status==='pending' ? `
@@ -540,12 +541,19 @@
     else toast('Error. Try again.', 't-error');
   }
 
+  async function testEmail() {
+    const result = await api('POST', 'email-test');
+    if (result?.success) toast('Test email sent. Check the configured admin inbox.', 't-success');
+    else if (result) toast(result.message || 'Email test failed. Check server configuration and logs.', 't-error');
+  }
+
   // ── API HELPER (Spring Boot REST style) ──
   // Maps old action-based calls to proper REST URLs
   const ROUTE_MAP = {
     'stats':        ['GET',    '/api/admin/stats'],
     'list':         ['GET',    '/api/admin/donations'],
     'users':        ['GET',    '/api/admin/users'],
+    'email-test':   ['POST',   '/api/admin/email/test'],
   };
 
   async function api(method, action, body) {
@@ -601,13 +609,13 @@
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        adminToken = pass;
+        adminToken = data.token;
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
         loadAll();
       } else {
         const err = document.getElementById('login-err');
-        err.textContent = 'Incorrect password. Try again.';
+        err.textContent = data.error || 'Incorrect password. Try again.';
         err.style.display = 'block';
       }
     } catch(e) {
@@ -617,7 +625,13 @@
   }
 
   // ── HELPERS ──
-  function initials(name) { if (!name||name==='No name provided') return '?'; return name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2); }
+  function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+      }[ch]));
+    }
+
+    function initials(name) { if (!name||name==='No name provided') return '?'; return name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2); }
   function fmtDate(iso) { if (!iso) return '—'; const d = new Date(iso); return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
   function statusLbl(s) { return {pending:'⏳ Pending',confirmed:'✅ Confirmed',rejected:'✕ Rejected'}[s]||s; }
   function loading(id) { document.getElementById(id).innerHTML='<div class="loading-state"><div class="spinner"></div></div>'; }

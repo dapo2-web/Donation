@@ -3,6 +3,7 @@ package com.hopeycharlie.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -28,11 +29,26 @@ public class EmailService {
     // Spring auto-injects JavaMailSender configured from application.properties
     private final JavaMailSender mailSender;
 
-    @Value("${spring.mail.username}")
+    @Value("${spring.mail.username:}")
     private String fromEmail;
 
-    @Value("${app.donation.email}")
+    @Value("${spring.mail.password:}")
+    private String mailPassword;
+
+    @Value("${app.donation.email:}")
     private String adminEmail;
+
+    @Value("${app.bitcoin.wallet}")
+    private String bitcoinWallet;
+
+    /** True only when Gmail credentials have been provided (MAIL_USERNAME / MAIL_PASSWORD). */
+    private boolean mailConfigured() {
+        if (fromEmail == null || fromEmail.isBlank() || mailPassword == null || mailPassword.isBlank()) {
+            log.warn("Email skipped: set MAIL_USERNAME and MAIL_PASSWORD (a Gmail App Password) to enable emails.");
+            return false;
+        }
+        return true;
+    }
 
     /**
      * Sent to donor right after they submit a Bitcoin donation.
@@ -54,19 +70,19 @@ public class EmailService {
                 <p style="margin:0;color:#333;">
                   <strong>Donation ID:</strong> %s<br/>
                   <strong>Status:</strong> ⏳ Pending Confirmation<br/>
-                  <strong>Wallet:</strong> bc1qv34aurx4tx9zr4m5sr8dhrf6wa4ktmv0qpq697
+                  <strong>Wallet:</strong> %s
                 </p>
               </div>
               <p style="color:#555;line-height:1.7;">
                 Once your Bitcoin transaction confirms on the blockchain, our team will
                 verify it and you'll receive a final confirmation email.
-                This typically takes <strong>10–60 minutes</strong>.
+                Confirmation time depends on network conditions and the transaction fee.
               </p>
               <p style="color:#888;font-size:0.85rem;margin-top:32px;">
-                With love — Hopey & Charlie's Hearts Foundation ♥
+                With love — Hopey & Charlie's Hearts ♥
               </p>
             </div>
-            """.formatted(donorName != null ? donorName : "Friend", amount, donationId);
+            """.formatted(escapeHtml(donorName != null ? donorName : "Friend"), amount, donationId, escapeHtml(bitcoinWallet));
 
         sendEmail(toEmail, subject, html);
         notifyAdminNewDonation(donorName, toEmail, amount, donationId, "Bitcoin");
@@ -96,16 +112,16 @@ public class EmailService {
                 </p>
               </div>
               <p style="color:#555;line-height:1.7;">
-                Thank you from the bottom of our hearts. Your generosity is making a real
-                difference for families living with Down syndrome — and for people like
-                Hopey and Charlie.
+                Thank you for supporting the values behind Hopey &amp; Charlie's Hearts: dignity,
+                belonging, understanding and practical support for people with Down syndrome
+                and the families who love them.
               </p>
               <p style="color:#888;font-size:0.85rem;margin-top:32px;">
-                With love — Hopey & Charlie's Hearts Foundation ♥
+                With love — Hopey & Charlie's Hearts ♥
               </p>
             </div>
             """.formatted(
-                donorName != null ? donorName : "Friend",
+                escapeHtml(donorName != null ? donorName : "Friend"),
                 amount, donationId, amount
         );
 
@@ -120,7 +136,7 @@ public class EmailService {
                                    BigDecimal amount, String donationId, String reason) {
         String subject = "⚠️ Issue With Your Donation";
         String reasonHtml = (reason != null && !reason.isBlank())
-                ? "<p style='color:#555;'><strong>Reason:</strong> " + reason + "</p>"
+                ? "<p style='color:#555;'><strong>Reason:</strong> " + escapeHtml(reason) + "</p>"
                 : "";
         String html = """
             <div style="font-family:Georgia,serif;max-width:560px;margin:0 auto;padding:40px 20px;">
@@ -131,75 +147,10 @@ public class EmailService {
               </p>
               %s
               <p style="color:#555;line-height:1.7;">
-                Please reach out to us at lydiahollis@gmail.com and we'll help resolve this.
+                Please reply to this email so our team can help resolve this.
               </p>
             </div>
-            """.formatted(donorName != null ? donorName : "Friend", amount, donationId, reasonHtml);
-
-        sendEmail(toEmail, subject, html);
-    }
-
-    /**
-     * Sends Apple Card photo to admin email as an attachment.
-     */
-    @Async
-    public void sendAppleCardToAdmin(String donorName, String donorEmail,
-                                     BigDecimal amount, String donationId,
-                                     byte[] imageBytes, String fileName) {
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            // true = multipart (needed for attachments)
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
-
-            helper.setFrom(fromEmail);
-            helper.setTo(adminEmail);
-            helper.setSubject("🍎 Apple Card Donation — $" + amount + " from " + donorEmail);
-            helper.setText("""
-                <div style="font-family:Georgia,serif;max-width:560px;margin:0 auto;padding:40px 20px;">
-                  <h2 style="color:#0A1F5C;">New Apple Card Donation</h2>
-                  <p><strong>Donor:</strong> %s<br/>
-                  <strong>Email:</strong> %s<br/>
-                  <strong>Amount:</strong> $%s<br/>
-                  <strong>Donation ID:</strong> %s</p>
-                  <p>Card photo is attached.</p>
-                </div>
-                """.formatted(donorName, donorEmail, amount, donationId), true);
-
-            // Attach the card image
-            helper.addAttachment(
-                    fileName != null ? fileName : "apple-card.jpg",
-                    new org.springframework.core.io.ByteArrayResource(imageBytes)
-            );
-
-            mailSender.send(message);
-            log.info("Apple card photo sent to admin for donation {}", donationId);
-
-        } catch (MessagingException e) {
-            log.error("Failed to send Apple Card email for donation {}: {}", donationId, e.getMessage());
-        }
-    }
-
-    /**
-     * Confirmation email to donor after Apple Card submission.
-     */
-    @Async
-    public void sendAppleCardConfirmation(String toEmail, String donorName,
-                                          BigDecimal amount, String donationId) {
-        String subject = "🍎 Apple Card Donation Received — Thank You!";
-        String html = """
-            <div style="font-family:Georgia,serif;max-width:560px;margin:0 auto;padding:40px 20px;">
-              <h1 style="color:#0A1F5C;">Thank You, %s ♥</h1>
-              <p style="color:#555;line-height:1.7;">
-                We've received your Apple Card donation of <strong>$%s</strong>.
-                Our team will process it within <strong>24 hours</strong>
-                and send you a final confirmation.
-              </p>
-              <p style="color:#555;"><strong>Donation ID:</strong> %s</p>
-              <p style="color:#888;font-size:0.85rem;margin-top:32px;">
-                With love — Hopey & Charlie's Hearts Foundation ♥
-              </p>
-            </div>
-            """.formatted(donorName != null ? donorName : "Friend", amount, donationId);
+            """.formatted(escapeHtml(donorName != null ? donorName : "Friend"), amount, donationId, reasonHtml);
 
         sendEmail(toEmail, subject, html);
     }
@@ -219,15 +170,44 @@ public class EmailService {
               <strong>Donation ID:</strong> %s</p>
               <p>Please verify and confirm from your Admin Dashboard.</p>
             </div>
-            """.formatted(method, donorName, donorEmail, amount, donationId);
+            """.formatted(method, escapeHtml(donorName), escapeHtml(donorEmail), amount, donationId);
 
         sendEmail(adminEmail, subject, html);
+    }
+
+    public boolean sendConfigurationTestEmail() {
+        if (!mailConfigured() || adminEmail == null || adminEmail.isBlank()) return false;
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom("\"Hopey & Charlie's Hearts\" <" + fromEmail + ">");
+            helper.setTo(adminEmail);
+            helper.setSubject("Hopey & Charlie's Hearts — email setup test");
+            helper.setText("<p>Your Gmail SMTP configuration is working. This is a test message.</p>", true);
+            mailSender.send(message);
+            log.info("Gmail configuration test email sent to {}", adminEmail);
+            return true;
+        } catch (MessagingException | MailException ex) {
+            log.error("Gmail configuration test failed: {}", ex.getMessage());
+            return false;
+        }
+    }
+
+    private String escapeHtml(String value) {
+        if (value == null) return "";
+        return value.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\\", "&#92;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
 
     /**
      * Core send method — wraps JavaMailSender.
      */
     private void sendEmail(String to, String subject, String htmlBody) {
+        if (!mailConfigured() || to == null || to.isBlank()) return;
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -237,7 +217,9 @@ public class EmailService {
             helper.setText(htmlBody, true); // true = HTML
             mailSender.send(message);
             log.info("Email sent to {}: {}", to, subject);
-        } catch (MessagingException e) {
+        } catch (MessagingException | MailException e) {
+            // MailAuthenticationException (bad Gmail login) is a MailException, not a MessagingException,
+            // so it must be caught here or it escapes the async thread as a huge stack trace.
             log.error("Failed to send email to {}: {}", to, e.getMessage());
         }
     }

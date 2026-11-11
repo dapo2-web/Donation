@@ -2,31 +2,22 @@ package com.hopeycharlie.controller;
 
 import com.hopeycharlie.dto.DonationDtos.*;
 import com.hopeycharlie.service.DonationService;
+import com.hopeycharlie.service.EmailService;
 import com.hopeycharlie.service.UserService;
-import jakarta.validation.Valid;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.Map;
 
-/**
- * AdminController — all admin panel endpoints.
- * Protected by Spring Security (requires "ADMIN" role — see SecurityConfig).
- *
- * Routes:
- *   POST /api/admin/login          → admin login, returns token
- *   GET  /api/admin/stats          → dashboard stats
- *   GET  /api/admin/donations      → all donations list
- *   POST /api/admin/donations/{id}/confirm  → confirm Bitcoin donation
- *   POST /api/admin/donations/{id}/reject   → reject donation
- *   GET  /api/admin/users          → all registered users
- *   POST /api/admin/users/{id}/disable      → disable user
- *   POST /api/admin/users/{id}/enable       → enable user
- *   DELETE /api/admin/users/{id}            → delete user
- */
 @RestController
 @RequestMapping("/api/admin")
 @CrossOrigin(origins = "*")
@@ -36,6 +27,7 @@ public class AdminController {
 
     private final DonationService donationService;
     private final UserService userService;
+    private final EmailService emailService;
 
     @Value("${app.admin.password}")
     private String adminPassword;
@@ -43,96 +35,116 @@ public class AdminController {
     @Value("${app.jwt.secret}")
     private String jwtSecret;
 
-    /**
-     * POST /api/admin/login
-     * Simple password-based admin login — returns a token if correct.
-     */
     @PostMapping("/login")
     public ResponseEntity<?> adminLogin(@RequestBody AdminLoginRequest request) {
-        if (!adminPassword.equals(request.getPassword())) {
-            return ResponseEntity.status(401).body(Map.of("error", "Incorrect password"));
+        if (adminPassword == null || adminPassword.isBlank()) {
+            return ResponseEntity.status(503).body(Map.of("success", false, "error", "Admin password is not configured. Set ADMIN_PASSWORD before using the admin panel."));
         }
-        // Return a simple token — admin panel stores this and sends it in x-admin-token header
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "token", adminPassword  // In production, use a proper JWT here
-        ));
+        if (request == null || request.getPassword() == null ||
+                !java.security.MessageDigest.isEqual(
+                        adminPassword.getBytes(StandardCharsets.UTF_8),
+                        request.getPassword().getBytes(StandardCharsets.UTF_8))) {
+            return ResponseEntity.status(401).body(Map.of("success", false, "error", "Incorrect password"));
+        }
+
+        String token = Jwts.builder()
+                .subject("admin")
+                .claim("role", "ADMIN")
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 8L * 60 * 60 * 1000))
+                .signWith(signingKey())
+                .compact();
+
+        return ResponseEntity.ok(Map.of("success", true, "token", token));
     }
 
-    /**
-     * GET /api/admin/stats
-     */
+    @PostMapping("/email/test")
+    public ResponseEntity<?> sendTestEmail(@RequestHeader(value = "x-admin-token", required = false) String token) {
+        if (!authorized(token)) return unauthorized();
+        boolean sent = emailService.sendConfigurationTestEmail();
+        if (!sent) {
+            return ResponseEntity.status(503).body(Map.of("success", false,
+                    "message", "Email test failed. Check MAIL_USERNAME, MAIL_PASSWORD, ADMIN_EMAIL and the server logs."));
+        }
+        return ResponseEntity.ok(Map.of("success", true, "message", "Test email sent to the configured admin address."));
+    }
+
     @GetMapping("/stats")
-    public ResponseEntity<StatsResponse> getStats() {
+    public ResponseEntity<?> getStats(@RequestHeader(value = "x-admin-token", required = false) String token) {
+        if (!authorized(token)) return unauthorized();
         return ResponseEntity.ok(donationService.getStats(userService.getUserCount()));
     }
 
-    /**
-     * GET /api/admin/donations
-     */
     @GetMapping("/donations")
-    public ResponseEntity<DonationListResponse> getDonations() {
+    public ResponseEntity<?> getDonations(@RequestHeader(value = "x-admin-token", required = false) String token) {
+        if (!authorized(token)) return unauthorized();
         return ResponseEntity.ok(new DonationListResponse(donationService.getAllDonations()));
     }
 
-    /**
-     * POST /api/admin/donations/{id}/confirm
-     * Confirms a Bitcoin donation and emails the donor.
-     *
-     * @PathVariable String id — the donation ID from the URL
-     */
     @PostMapping("/donations/{id}/confirm")
-    public ResponseEntity<?> confirmDonation(@PathVariable String id) {
+    public ResponseEntity<?> confirmDonation(@PathVariable String id,
+            @RequestHeader(value = "x-admin-token", required = false) String token) {
+        if (!authorized(token)) return unauthorized();
         donationService.confirmDonation(id);
         return ResponseEntity.ok(Map.of("success", true, "message", "Donation confirmed. Donor notified."));
     }
 
-    /**
-     * POST /api/admin/donations/{id}/reject
-     * Rejects a donation and emails the donor.
-     *
-     * Request body (optional): { "reason": "Transaction not found on blockchain" }
-     */
     @PostMapping("/donations/{id}/reject")
     public ResponseEntity<?> rejectDonation(@PathVariable String id,
-                                            @RequestBody(required = false) Map<String, String> body) {
+            @RequestBody(required = false) Map<String, String> body,
+            @RequestHeader(value = "x-admin-token", required = false) String token) {
+        if (!authorized(token)) return unauthorized();
         String reason = body != null ? body.get("reason") : null;
         donationService.rejectDonation(id, reason);
         return ResponseEntity.ok(Map.of("success", true, "message", "Donation rejected. Donor notified."));
     }
 
-    /**
-     * GET /api/admin/users
-     */
     @GetMapping("/users")
-    public ResponseEntity<UserListResponse> getUsers() {
+    public ResponseEntity<?> getUsers(@RequestHeader(value = "x-admin-token", required = false) String token) {
+        if (!authorized(token)) return unauthorized();
         return ResponseEntity.ok(new UserListResponse(userService.getAllUsers()));
     }
 
-    /**
-     * POST /api/admin/users/{id}/disable
-     */
     @PostMapping("/users/{id}/disable")
-    public ResponseEntity<?> disableUser(@PathVariable String id) {
+    public ResponseEntity<?> disableUser(@PathVariable String id,
+            @RequestHeader(value = "x-admin-token", required = false) String token) {
+        if (!authorized(token)) return unauthorized();
         userService.disableUser(id);
         return ResponseEntity.ok(Map.of("success", true));
     }
 
-    /**
-     * POST /api/admin/users/{id}/enable
-     */
     @PostMapping("/users/{id}/enable")
-    public ResponseEntity<?> enableUser(@PathVariable String id) {
+    public ResponseEntity<?> enableUser(@PathVariable String id,
+            @RequestHeader(value = "x-admin-token", required = false) String token) {
+        if (!authorized(token)) return unauthorized();
         userService.enableUser(id);
         return ResponseEntity.ok(Map.of("success", true));
     }
 
-    /**
-     * DELETE /api/admin/users/{id}
-     */
     @DeleteMapping("/users/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable String id) {
+    public ResponseEntity<?> deleteUser(@PathVariable String id,
+            @RequestHeader(value = "x-admin-token", required = false) String token) {
+        if (!authorized(token)) return unauthorized();
         userService.deleteUser(id);
         return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    private boolean authorized(String token) {
+        if (token == null || token.isBlank()) return false;
+        try {
+            Claims claims = Jwts.parser().verifyWith(signingKey()).build()
+                    .parseSignedClaims(token).getPayload();
+            return "admin".equals(claims.getSubject()) && "ADMIN".equals(claims.get("role", String.class));
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
+    private SecretKey signingKey() {
+        return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private ResponseEntity<?> unauthorized() {
+        return ResponseEntity.status(401).body(Map.of("success", false, "message", "Administrator session is invalid or expired."));
     }
 }

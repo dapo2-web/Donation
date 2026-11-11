@@ -4,6 +4,7 @@ import com.hopeycharlie.dto.DonationDtos.*;
 import com.hopeycharlie.model.User;
 import com.hopeycharlie.repository.DonationRepository;
 import com.hopeycharlie.repository.UserRepository;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -19,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -165,22 +167,46 @@ public class UserService {
     }
 
     /**
+     * Validates a JWT ("Bearer xxx" or raw) and returns the email inside it.
+     * Returns empty if the token is missing, expired, tampered with, or the account is disabled.
+     */
+    public Optional<String> emailFromToken(String authHeader) {
+        if (authHeader == null || authHeader.isBlank()) return Optional.empty();
+        String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7).trim() : authHeader.trim();
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(signingKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            String email = claims.getSubject();
+            return userRepository.findByEmail(email)
+                    .filter(User::isEnabled)
+                    .map(User::getEmail);
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    private javax.crypto.SecretKey signingKey() {
+        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+        byte[] paddedKey = new byte[32];
+        System.arraycopy(keyBytes, 0, paddedKey, 0, Math.min(keyBytes.length, 32));
+        return Keys.hmacShaKeyFor(paddedKey);
+    }
+
+    /**
      * Generate a JWT token for a user.
      * The token encodes the user's email and expires in 7 days.
      */
     private String generateToken(User user) {
-        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
-        // Ensure key is long enough for HS256
-        byte[] paddedKey = new byte[32];
-        System.arraycopy(keyBytes, 0, paddedKey, 0, Math.min(keyBytes.length, 32));
-
         return Jwts.builder()
                 .setSubject(user.getEmail())
                 .claim("name", user.getFullName())
                 .claim("role", user.getRole())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + 7L * 24 * 60 * 60 * 1000)) // 7 days
-                .signWith(Keys.hmacShaKeyFor(paddedKey), SignatureAlgorithm.HS256)
+                .signWith(signingKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 

@@ -34,11 +34,10 @@ public class DonationDtos {
         private String donorName;
 
         @NotBlank(message = "Payment method is required")
-        private String method; // "bitcoin" or "apple_card"
+        private String method; // "bitcoin" (other methods remain disabled until secure processor integration)
 
-        // Only used for Apple Card - base64 encoded image
-        private String cardImageBase64;
-        private String fileName;
+        @Size(max = 128, message = "Transaction ID is too long")
+        private String transactionId;
     }
 
     // ── RESPONSE: Spring sends this back after donation ───────────
@@ -63,6 +62,7 @@ public class DonationDtos {
         private String donorEmail;
         private String donorName;
         private String method;
+        private String transactionId;
         private String status;
         private LocalDateTime createdAt;
         private LocalDateTime confirmedAt;

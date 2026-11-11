@@ -57,7 +57,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public routes — anyone can call these
                         .requestMatchers("/api/auth/**").permitAll()   // register, login
-                        .requestMatchers("/api/donate").permitAll()    // submit donation
+                        .requestMatchers("/api/donate", "/api/donate/**").permitAll() // donate + history (token checked in controller)
                         .requestMatchers("/api/admin/login").permitAll() // admin login
                         // Static files (your HTML/CSS/JS frontend)
                         .requestMatchers("/", "/index.html", "/admin.html",
